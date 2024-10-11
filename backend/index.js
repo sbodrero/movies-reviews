@@ -1,7 +1,7 @@
-import app from './server.js';
 import mongodb from 'mongodb';
 import dotenv from 'dotenv';
-
+import app from './server.js';
+import MoviesDAO from './dao/moviesDAO.js';
 async function main() {
   dotenv.config(); // pour accéder au variables environnements
 
@@ -11,6 +11,8 @@ async function main() {
 
   try {
     await client.connect(); // on se connecte à la base de données
+    await MoviesDAO.injectDB(client); // injecte la connexion MongoDB dans la DAO MoviesDAO
+    // nous avons ainsi notre référence movies dans notre application on va pouvoir l'utiliser dans  notre controller
 
     app.listen(port, () => { // lance le serveur sur le port définit
       console.log(`Server is running on port ${port}`);
