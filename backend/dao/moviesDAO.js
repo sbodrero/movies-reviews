@@ -16,7 +16,7 @@ export default class MoviesDAO {
   }
 
   static async getMovies({ // filtre par défaut, tous les films, page 0, 20 films par page) {}
-    filters = null,
+    filters = {},
     page = 0,
     moviesPerPage = 20,
                          } = {}) {
