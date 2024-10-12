@@ -1,9 +1,7 @@
-//import dotenv from 'dotenv';
-
-//dotenv.config();
 let movies; // Instance de la collection movies démarre en même temps que le serveur
 
 export default class MoviesDAO {
+  static movies
   static async injectDB(connection) {
     if (movies) {
       return;
@@ -11,34 +9,42 @@ export default class MoviesDAO {
     try {
       movies = await connection.db(process.env.MOVIEREVIEWS_NS).collection('movies');
     } catch (error) {
-      console.error(error);
+      console.error(`unable to connect in MoviesDAO: ${e}`)
     }
   }
 
-  static async getMovies({ // filtre par défaut, tous les films, page 0, 20 films par page) {}
-    filters = {},
-    page = 0,
-    moviesPerPage = 20,
-                         } = {}) {
-    let query = {};
-    if (filters) {
-      if ("title" in filters) {
-        query = { $text: { $search: ['title'] } }; // serach permet d'ajouter plusier termes pour une recherche globale "kill soldier"
-      } else if ("rated" in filters) {
-        query = {"rated": { $eq: filters['rated'] }}; // recherche par note $eq recherche exacte
+  static async getMovies({                                            // async method getMovies which accepts
+                           // a filter object as it's 1st argument
+                           // the default filter has no filters
+                           // retrieves results starting at page 0
+                           // with 20 movies per page
+                           // Possible filters are "title" and "rated"
+                           filters = null,
+                           page = 0,
+                           moviesPerPage = 20, // will only get 20 movies at once
+                         } = {}){
+    let query                                                       // create query with filters object
+    if(filters){
+      if("title" in filters){                                     // does filters contain "title"??
+        query = { $text: { $search: filters['title']}}          // if so search by title
+      }else if("rated" in filters){                               // does filters contain "rated"??
+        query = { "rated": { $eq: filters['rated']}}            // if so search by rated
       }
     }
 
-    let cursor;
-    try {
-      cursor = await movies.find(query).skip(page * moviesPerPage).limit(moviesPerPage); // décalage de page * nombre de films par page (pour la pagination)
-      // le cursor est essentiels pour limiter la pression sur la mémoire et la bande passante en cas de réponse de grande quantité
-      const movies = await cursor.toArray(); // récupère tous les films dans un tableau
-      const totalCount = await movies.countDocuments(query); // compte le nombre total de films qui correspondent aux critères de recherche
-      return { movies, totalCount };
-    } catch (error) {
-      console.error(error);
-      return { movies: [], totalCount: 0 }; // renvoie une liste vide et un nombre total de 0 si une erreur survient
+    let cursor                                                      // find all movies that fit query & assign to cursor
+    try{
+      cursor = await movies
+        .find(query)
+        .limit(moviesPerPage)                                       // set cursor limit
+        .skip(moviesPerPage * page)                                 // set cursor skip value
+      const moviesList = await cursor.toArray()                   // set moviesList to cursor
+      const totalNumMovies = await movies.countDocuments(query)   // set totalNumMovies
+      return {moviesList, totalNumMovies}                         // return moviesList & totalNumMovies
+    }
+    catch(e){                                                       // if there is any error just return
+      console.error(`Unable to issue find command, ${e}`)         // empty moviesList and totalNumMovies=0
+      return { moviesList: [], totalNumMovies: 0}
     }
   }
 }
